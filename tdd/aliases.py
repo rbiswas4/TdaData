@@ -119,5 +119,8 @@ def mapSeq2Standard(sequence, aliasDict):
                 ('tid', ('snid', 'object_id')),
                 ('mjd', ('expmjd', 'time')),
                 ('band', ('bandpass', 'filter', 'flt'))
+                ('flux', ('counts', 'fluxcal')),
+                ('fluxerr', ('flux_err', 'flux_error' ,'fluxerror')),
+                ('zp', ('zp', 'zeropoints')),
                     )
-        return dict(key_values)
+    return dict(key_values)
