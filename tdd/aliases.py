@@ -105,19 +105,27 @@ def mapSeq2Standard(sequence, aliasDict):
     std = [aliasDict[x] if x in aliasDict else x for x in sequence]
     return std
 
-    def standard_aliases():
-        """
-        A dictionary with keys as standard names and values as permissible aliases
-        Parameters
-        ----------
-        Returns
-        -------
-        aliases : dict
-            Dictionary with keys as standard parameters and values as possible aliases
-        """
-        key_values = (
-                ('tid', ('snid', 'object_id')),
-                ('mjd', ('expmjd', 'time')),
-                ('band', ('bandpass', 'filter', 'flt'))
-                    )
-        return dict(key_values)
+def standard_aliases():
+    """
+    A dictionary with keys as standard names and values as permissible aliases
+    Parameters
+    ----------
+    Returns
+    -------
+    aliases : dict
+        Dictionary with keys as standard parameters and values as possible aliases
+    """
+    key_values = (
+        ('tid', ['snid', 'object_id']),
+        ('tra', ['ra']),
+        ('tdec', ['dec', 'decl']),
+        ('mjd', ['expmjd', 'time']),
+        ('band', ['bandpass', 'passband', 'filter', 'flt']),
+        ('flux', ['counts', 'fluxcal']),
+        ('fluxerr', ['flux_err', 'flux_error' ,'fluxerror']),
+        ('tclass', ['target']),
+        ('mag', ['magpsf']),
+        ('magerr', ['magpsferr']),
+        ('zp', ['zp', 'zeropoints']),
+    )
+    return dict(key_values)
