@@ -9,7 +9,6 @@ from future.utils import with_metaclass
 __all__ = ['read_plasticc_data']
 import numpy as np
 import pandas as pd
-from astropy.table import Table
 
 def read_plasticc_data(metadata_fname, photometry_fname):
     """
