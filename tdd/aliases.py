@@ -4,9 +4,9 @@ Some utilities for aliases. Used to change dataframe column names to a standard
 """
 from __future__ import division, absolute_import, print_function
 from future.builtins import dict
-__all__ = ['aliasDictionary', 'mapSeq2Standard', 'standard_aliases']
+__all__ = ['alias_dict', 'standardize_sequence', 'standard_aliases']
 
-def aliasDictionary(sequence, aliases):
+def alias_dict(sequence, aliases):
     """
     Given a dictionary of
     aliases of the form {standard_string_names: list of possible aliases}
@@ -32,7 +32,7 @@ def aliasDictionary(sequence, aliases):
     >>> aliases = dict(time=['mjd','expmjd'], flux=['counts'],\
                        fluxerr=['flux_err', 'fluxerror'], zpsys=['magsys'])
     >>> testSeq = ['mJd', 'band', 'zp', 'Flux', 'fluxError', 'zpsys']
-    >>> aliasDictionary(testSeq, aliases) == {'Flux': 'flux', \
+    >>> alias_dict(testSeq, aliases) == {'Flux': 'flux', \
                                               'fluxError': 'fluxerr',\
                                               'mJd': 'time'}
     True
@@ -43,7 +43,7 @@ def aliasDictionary(sequence, aliases):
     1. It is obviously imperative that the list of possible aliases combined
     for all keys should not have duplicates
     2. The dictionary can be used to change non-standard column names in a
-    `pd.DataFrame` through the use of `dataFrame.rename(columns=aliasDictionary,
+    `pd.DataFrame` through the use of `dataFrame.rename(columns=alias_dictionary,
     inplace=True)`
     """
 
@@ -67,12 +67,12 @@ def aliasDictionary(sequence, aliases):
 
 
     # return the dictionary
-    aliasDict = dict((testDict[key], inverse_dict[key]) for key in aliasedSet
+    alias_dict = dict((testDict[key], inverse_dict[key]) for key in aliasedSet
                      if testDict[key] != inverse_dict[key])
 
-    return aliasDict
+    return alias_dict
 
-def mapSeq2Standard(sequence, aliasDict):
+def standardize_sequence(sequence, alias_dict):
     """
     given a sequence of strings return a list of the strings, replacing those
     strings in the input sequence which are keys in the dictionary by their
@@ -82,7 +82,7 @@ def mapSeq2Standard(sequence, aliasDict):
     ---------
     sequence : sequence of strings
 
-    aliasDict : Dictionary
+    alias_dict : Dictionary
         Dictionary of aliases where the keys are strings in the sequence and
         the values are the standard names associated with those strings
 
@@ -94,15 +94,15 @@ def mapSeq2Standard(sequence, aliasDict):
     --------
     >>> aliases = dict(time=['mjd','expmjd'], flux=['counts'], fluxerr=['flux_err', 'fluxerror']) 
     >>> testSeq = ['mJd', 'band', 'zp', 'Flux', 'fluxError']
-    >>> aliasDict = aliasDictionary(testSeq, aliases)
-    >>> mapSeq2Standard(testSeq, aliasDict) == ['time', 'band', 'zp', 'flux', 'fluxerr']
+    >>> alias_dict = alias_dictionary(testSeq, aliases)
+    >>> standardize_sequence(testSeq, alias_dict) == ['time', 'band', 'zp', 'flux', 'fluxerr']
     True
 
     Notes
     -----
 
     """
-    std = [aliasDict[x] if x in aliasDict else x for x in sequence]
+    std = [alias_dict[x] if x in alias_dict else x for x in sequence]
     return std
 
 def standard_aliases():

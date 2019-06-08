@@ -1,7 +1,7 @@
 import tdd
 from tdd import (standard_aliases,
-                 aliasDictionary,
-                 mapSeq2Standard)
+                 alias_dict,
+                 standardize_sequence)
 
 def test_std_aliases():
     mydict = standard_aliases()
@@ -17,7 +17,7 @@ def test_alias_dict():
     aliases = dict(time=['mjd', 'expmjd'], flux=['counts'],\
                    fluxerr=['flux_err', 'fluxerror'], zpsys=['magsys'])
     test_seq = ['mJd', 'band', 'zp', 'Flux', 'fluxError', 'zpsys']
-    val = aliasDictionary(test_seq, aliases) == {'Flux': 'flux', \
+    val = alias_dict(test_seq, aliases) == {'Flux': 'flux', \
                                                  'fluxError': 'fluxerr',\
                                                  'mJd': 'time'}
     assert val
@@ -26,9 +26,10 @@ def test_standarizing_names():
     """
     test for standardizing names
     """
-    aliases = dict(time=['mjd','expmjd'],
-                   flux=['counts'], fluxerr=['flux_err', 'fluxerror']) 
-    testSeq = ['mJd', 'band', 'zp', 'Flux', 'fluxError']
-    aliasDict = aliasDictionary(testSeq, aliases)
-    val = mapSeq2Standard(testSeq, aliasDict) == ['time', 'band', 'zp', 'flux', 'fluxerr']
+    aliases = dict(time=['mjd', 'expmjd'],
+                   flux=['counts'], fluxerr=['flux_err', 'fluxerror'])
+    test_seq = ['mJd', 'band', 'zp', 'Flux', 'fluxError']
+    adict = alias_dict(test_seq, aliases)
+    val = standardize_sequence(test_seq, adict) == ['time', 'band', 'zp',
+                                                    'flux', 'fluxerr']
     assert val
