@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from astropy.table import Table
 import sncosmo
-from .aliases import aliasDictionary
+from .aliases import alias_dict
 
 
 __all__ = ['BaseLightCurve', 'LightCurve']
@@ -130,7 +130,7 @@ class LightCurve(BaseLightCurve):
         >>> lc = LightCurve(ex_data.to_pandas()) 
         """
         aliases = self.columnAliases
-        standardNamingDict = aliasDictionary(lcdf.columns, aliases)
+        standardNamingDict = alias_dict(lcdf.columns, aliases)
         if len(standardNamingDict) > 0:
             lcdf.rename(columns=standardNamingDict, inplace=True)
 
