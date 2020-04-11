@@ -3,6 +3,7 @@ import os
 from .version import __VERSION__ as __version__
 from .io import *
 from .aliases import *
+from .lightcurve import *
 
 here = __file__
 basedir = os.path.split(here)[0]
