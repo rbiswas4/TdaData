@@ -6,3 +6,4 @@ matplotlib
 future
 numpy
 pandas
+astropy
