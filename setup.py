@@ -34,5 +34,6 @@ setup(# package information
       packagedir={PACKAGENAME: 'tdd'},
       # What data to include as packages
       include_package_data=True,
-      package_data={PACKAGENAME:['example_data/*.csv']}
+      package_data={PACKAGENAME:['example_data/*.csv']},
+      install_requires=['astropy']
       )

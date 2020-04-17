@@ -10,7 +10,7 @@ import abc
 import numpy as np
 import pandas as pd
 from astropy.table import Table
-from .aliases import aliasDictionary
+from .aliases import alias_dict as aliasDictionary
 from .lightcurve import LightCurve
 
 class PhotTables(object):
