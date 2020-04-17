@@ -34,6 +34,8 @@ setup(# package information
       packagedir={PACKAGENAME: 'tdd'},
       # What data to include as packages
       include_package_data=True,
-      package_data={PACKAGENAME:['example_data/*.csv']},
-      install_requires=['astropy']
+      install_requires=['astropy'],
+      package_data={PACKAGENAME:['example_data/*.csv',
+                                 'example_data/*.pkl']},
+      install_requires=['simsurvey']
       )
