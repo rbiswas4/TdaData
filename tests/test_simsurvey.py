@@ -16,7 +16,7 @@ def test_read_simsurvey():
 
     meta_all, phot_all = read_simsurvey(lcs_fname, shift_idx=0, sim_suffix=0,
                                         meta_selection_func=None,
-                                        params=params, phot_selection=None)
+                                        params=params, phot_selection_func=None)
     
     assert len(meta_all) == 8
 
