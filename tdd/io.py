@@ -46,3 +46,4 @@ def read_plasticc_data(metadata_fname, photometry_fname, band_orig=(0, 1, 2, 3, 
     photometry['zpsys'] = 'ab'
 
     return metadata, photometry
+
