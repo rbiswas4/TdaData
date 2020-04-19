@@ -1,4 +1,4 @@
-__all__ = ['read_simsurvey', 'select_using_simsurvey_meta']
+__all__ = ['read_simsurvey', 'select_using_simsurvey_meta', 'convert_meta_to_dataframe']
 
 import numpy as np
 import pandas as pd
@@ -41,6 +41,47 @@ def select_using_simsurvey_meta(meta, lcs):
 
     return meta
 
+
+def convert_meta_to_dataframe(meta, shift_idx=0, orig_order=True):
+    """
+    Parameters
+    ----------
+    meta : `np.recarray`
+        a metadata array from `simsurvey` output
+
+    shift_idx : `int`
+        number to be added to `idx_orig` parameter to get
+        desired `tid`
+
+    orig_order :  `Bool`, defaults to `True`
+        if not `False`, add a column `order` specifying the row order
+        in the input `meta`
+
+
+    Returns
+    -------
+    meta : `pd.DataFrame`
+        array in the form of a dataframe, with index given by 
+        `tid` set to values of `shift_idx + idx_orig`, where `idx_orig` is a
+        column in the input parameter `meta`. If `orig_order` is not `False`,
+        this also contains a column with the order of the rows in the input
+        `meta_data`
+    """
+    meta = pd.DataFrame(meta)
+
+    if orig_order :
+        # Keep the order before any selection to pick out lcs
+        meta['order'] = np.arange(len(meta))
+
+    meta.rename(columns=dict(idx_orig='tid'), inplace=True)
+
+    # Used to fix splits
+    meta['tid'] += shift_idx 
+
+    meta.set_index('tid', inplace=True)
+
+    return meta
+
 def read_simsurvey(pkl_fname,
                    params=None,
                    meta_selection_func=None,
@@ -48,6 +89,8 @@ def read_simsurvey(pkl_fname,
                    ind_lc_selection_func=None,
                    sim_suffix=None,
                    shift_idx=0,
+                   keep_all_simulated_meta=False,
+                   threshold_for_lc=2,
                    mapping_dict=None):
     """
     Return a metadata and photometry table containing selected TDAs simulated
@@ -98,30 +141,64 @@ def read_simsurvey(pkl_fname,
         dictionary with keys from params_fname to keys intended.
         Not implemented yet. The user must make this change themselves.
 
-
+    keep_all_simulated_meta : `bool`, defaults to `False`
+        if `True`, keeps metadata for unselected objects. The  objects rejected
+        by simsurvey have a selection of 0. Objects not observed have a selection of -1.
+        Objects cchosen by metadata selection has a `selection` of 2 by default.
+    threshold_for_lc : {1 | 2} , defaults to 2
+        minimum value of `selected` column in output metadata. Must be greater or equal to 1,
+        which imply all light curves passing criteria supplied to input `simsurvey` simulation.
+        The default value of 2 corresponds to the selection applied on the metadata via `meta_selection_func`.
+        
     Notes
     -----
+    While there is no way to get higher values of `threshold_for_lc`, the `selection` column may be changed
+    for soecific objects in the returned `meta` dataframe, and used for later selection
 
     """
     if mapping_dict is not None:
         raise NotImplementedError('Not implemented yet\n')
 
+    if threshold_for_lc < 0.997:
+        raise ValueError('A threshold value < 1 reults in problems due to photometry file being empty')
+
     lcs = simsurvey.LightcurveCollection(load=pkl_fname)
 
-    meta = pd.DataFrame(lcs.meta)
+    # meta = pd.DataFrame(lcs.meta)
 
-    # Keep the order before any selection to pick out lcs
-    meta['order'] = np.arange(len(meta))
-    meta.rename(columns=dict(idx_orig='tid'), inplace=True)
+    # # Keep the order before any selection to pick out lcs
+    # meta['order'] = np.arange(len(meta))
+    # meta.rename(columns=dict(idx_orig='tid'), inplace=True)
 
-    # Used to fix splits
-    meta['tid'] += shift_idx 
+    # # Used to fix splits
+    # meta['tid'] += shift_idx 
 
-    meta.set_index('tid', inplace=True)
+    # meta.set_index('tid', inplace=True)
+    meta_detected = convert_meta_to_dataframe(lcs.meta, shift_idx=shift_idx,
+                                              orig_order=True)
+    meta_detected['selected'] = 1
 
     # Now select
     if meta_selection_func is not None:
-        meta = meta_selection_func(meta, lcs)
+        meta = meta_selection_func(meta_detected, lcs)
+        sel = meta.index.values
+        meta_detected.loc[sel, 'selected'] = 2
+
+
+    if keep_all_simulated_meta :
+        ## rejected
+        meta_rejected = convert_meta_to_dataframe(lcs.meta_rejected, shift_idx=shift_idx,
+                                                  orig_order=True)
+        meta_rejected['selected'] = 0
+    
+        ## not observed
+        meta_not_observed = convert_meta_to_dataframe(lcs.meta_notobserved, shift_idx=shift_idx,
+                                                      orig_order=True)
+        meta_not_observed['selected'] = -1
+
+        meta = pd.concat([meta_detected, meta_rejected, meta_not_observed])
+    else:
+        meta = meta_detected
 
     # Do join with params at this stage before appending `sim_suffix`
     if params is not None:
@@ -146,8 +223,8 @@ def read_simsurvey(pkl_fname,
             .tid.apply(lambda x: f'{x}_{sim_suffix}')
 
     # Put tid in phots
-    idxs = meta.reset_index().tid.values
-    order = meta.reset_index().order.values
+    idxs = meta.query('selected == @threshold_for_lc').reset_index().tid.values
+    order = meta.query('selected == @threshold_for_lc').reset_index().order.values
 
 
     # Pick the selected light curve by using the order column of meta
