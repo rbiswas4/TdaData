@@ -21,3 +21,14 @@ def test_read_simsurvey():
     assert len(meta_all) == 8
 
     return meta_all, phot_all
+
+def test_read_simsurvey_with_no_params():
+    lcs_fname  = os.path.join(example_data,
+                              'salt2_ex_lcs.pkl')
+    meta_all, phot_all = read_simsurvey(lcs_fname, shift_idx=0, sim_suffix=0,
+                                        meta_selection_func=None,
+                                        params=None, phot_selection_func=None)
+    
+    assert len(meta_all) == 8
+
+    return meta_all, phot_all
