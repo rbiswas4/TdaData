@@ -242,6 +242,8 @@ def read_simsurvey(pkl_fname,
     # photometry table
     phot = pd.concat(lc_list)
     phot['SNR'] = phot['flux']/phot['fluxerr']
+    phot['selected'] = threshold_for_lc
+    
     
     if phot_selection_func is not None:
         meta, phot = phot_selection_func(meta, phot, lcs)
