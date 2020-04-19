@@ -124,7 +124,8 @@ def read_simsurvey(pkl_fname,
         meta = meta_selection_func(meta, lcs)
 
     # Do join with params at this stage before appending `sim_suffix`
-    meta = meta.join(params, rsuffix='_input')
+    if params is not None:
+        meta = meta.join(params, rsuffix='_input')
     
     # Check join OK if possible, and drop extra columnsdroplist = []
     drop_list = []
