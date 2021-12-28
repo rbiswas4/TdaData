@@ -3,6 +3,8 @@ Class for holding Light Curve Data
 """
 from __future__ import absolute_import, print_function, division
 from future.utils import with_metaclass
+__all__ = ['BaseLightCurve', 'LightCurve']
+
 from future.moves.itertools import zip_longest
 import abc
 from collections import Sequence
@@ -11,9 +13,11 @@ import pandas as pd
 from astropy.table import Table
 import sncosmo
 from .aliases import alias_dict as aliasDictionary
+from tdam import CompositeModel
 
 
-__all__ = ['BaseLightCurve', 'LightCurve']
+
+
 
 class BaseLightCurve(with_metaclass(abc.ABCMeta, object)):
     """
@@ -102,7 +106,7 @@ class LightCurve(BaseLightCurve):
     """
 
     def __init__(self, lcdf, bandNameDict=None, ignore_case=True, propDict=None,
-                 cleanNans=True):
+            cleanNans=True):
         """
         Instantiate Light Curve class
 
@@ -137,7 +141,7 @@ class LightCurve(BaseLightCurve):
         missingColumns = self.missingColumns(lcdf)
         if len(missingColumns) > 0:
             raise ValueError('light curve data has missing columns',
-                             missingColumns)
+                    missingColumns)
 
         self.bandNameDict = bandNameDict
         self._lightCurve  = lcdf
@@ -160,44 +164,90 @@ class LightCurve(BaseLightCurve):
             else:
                 return x[:-3].lower()
         banddict = dict((key.lower(), filtername(key) + key[-1])
-                        for key in lc.Filter.unique())
+                for key in lc.Filter.unique())
         return cls(lc,
-                   bandNameDict=banddict,
-                   ignore_case=True,
-                   propDict=_lc.meta)
+                bandNameDict=banddict,
+                ignore_case=True,
+                propDict=_lc.meta)
 
 
     @classmethod 
-    def fromSNANA_ascii_file(cls, fname, row_starter='OBS',
-                       banddict=banddict):
+    def fromSNANA_ascii_file(cls, fname, banddict, row_starter='OBS'):
         """
         Method to create a data object from a single supernova ascii file
         which 
         """
-        
+
         #print(fname)
         with open(fname, 'r') as f:
             meta, lc = sncosmo.read_snana_ascii(f, 
-                                                default_tablename='OBS')
+                    default_tablename='OBS')
         phot = lc['OBS'].to_pandas()
         phot['zp'] = 27.5
         phot['zpsys'] = 'ab'
-        
-        
+
+
         meta['z'] = meta['REDSHIFT_HELIO']
         meta['z_cosmo'] = meta['REDSHIFT_FINAL']
         try:
             tid = meta['IAUC']
         except:
             tid = meta['SNID']
-        
+
         phot['tid'] = tid
         meta['tid'] = tid
         return cls(phot, bandNameDict=banddict, 
-                          propDict=meta)
+                   propDict=meta)
 
 
-    def fromSNANA_ascii_files(cls, fnames, snmodel=cm) 
+
+    @classmethod
+    def fromSNANA_ascii_files(cls, fnames, banddict, tdmodel, rescale=0.86):
+        """
+        """
+        def extract_fit_params(fr):
+
+            if fr['success']:
+                a = fr['parameters']
+            else:
+                a = np.ones_like(fr['parameters']) * np.nan
+    
+            names = list(p + '_fit' for p in fr['param_names'])
+            mydict = dict(zip(names, a))
+            mydict.update({'Usable_fit_params':fr['success']})
+            return mydict
+
+        metas = []
+        phots = []
+        results = []
+        for i, fname in enumerate(fnames):
+            snlc = cls.fromSNANA_ascii_file(fname, banddict)
+            meta = snlc.props
+            phot = snlc.lightCurve
+            if tdmodel is not None:
+                tdmodel.set(**dict(z=snlc.props['z'], mwebv=snlc.props['MWEBV']*rescale))
+                res = sncosmo.fit_lc(snlc.get_sncosmo_lc(),
+                                 model=snmodel,
+                                 vparam_names=['t0', 'x0','x1', 'c'])
+        
+                sncosmo_fr = res[0]
+                #print(type(meta))
+                meta.update(extract_fit_params(sncosmo_fr))
+                print(type(meta))
+                results.append((phot.iloc[0]['tid'], res))
+            metas.append(meta)
+            phots.append(phot)
+    
+    
+        photometry = pd.concat(phots)
+        photometry.index = np.arange(len(photometry))
+    
+        metadata = pd.concat(list(pd.DataFrame(meta, index=pd.Series(name='tid', data=meta['tid'])) for meta in metas))
+        metadata = metadata.rename(columns=dict(RA="ra", DECL="dec"))
+        del metadata['tid']
+    
+        return metadata, photometry, results
+
     def missingColumns(self, lcdf):
         """
         return a set of columns in the light curve dataframe that are missing
@@ -238,8 +288,11 @@ class LightCurve(BaseLightCurve):
         _lc = self._lightCurve.copy()
 
         # return the light curve
-        _lc.band = _lc.band.apply(lambda x: x.decode())
-        _lc.band = _lc.band.apply(lambda x: x.strip())
+
+        # Why do we need this. Removing becausse I get errors on trying to add fromSNANA_ascii_files
+        # RB, 28/12/2021
+        # _lc.band = _lc.band.apply(lambda x: x.decode())
+        # _lc.band = _lc.band.apply(lambda x: x.strip())
         if self.bandNameDict is not None:
             _lc.band = _lc.band.apply(lambda x:
                                       self.remap_filters(x, self.bandNameDict,
