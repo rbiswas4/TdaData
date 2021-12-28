@@ -125,7 +125,7 @@ class LightCurve(BaseLightCurve):
             dropped
         Example
         -------
-        >>> from analyzeSN import LightCurve
+        >>> from tdd import LightCurve
         >>> ex_data = sncosmo.load_example_data()
         >>> lc = LightCurve(ex_data.to_pandas()) 
         """
@@ -167,6 +167,37 @@ class LightCurve(BaseLightCurve):
                    propDict=_lc.meta)
 
 
+    @classmethod 
+    def fromSNANA_ascii_file(cls, fname, row_starter='OBS',
+                       banddict=banddict):
+        """
+        Method to create a data object from a single supernova ascii file
+        which 
+        """
+        
+        #print(fname)
+        with open(fname, 'r') as f:
+            meta, lc = sncosmo.read_snana_ascii(f, 
+                                                default_tablename='OBS')
+        phot = lc['OBS'].to_pandas()
+        phot['zp'] = 27.5
+        phot['zpsys'] = 'ab'
+        
+        
+        meta['z'] = meta['REDSHIFT_HELIO']
+        meta['z_cosmo'] = meta['REDSHIFT_FINAL']
+        try:
+            tid = meta['IAUC']
+        except:
+            tid = meta['SNID']
+        
+        phot['tid'] = tid
+        meta['tid'] = tid
+        return cls(phot, bandNameDict=banddict, 
+                          propDict=meta)
+
+
+    def fromSNANA_ascii_files(cls, fnames, snmodel=cm) 
     def missingColumns(self, lcdf):
         """
         return a set of columns in the light curve dataframe that are missing
