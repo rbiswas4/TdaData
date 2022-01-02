@@ -1,5 +1,5 @@
 """
-Class for holding Light Curve Data
+from . import ResChar for holding Light Curve Data
 """
 from __future__ import absolute_import, print_function, division
 from future.utils import with_metaclass
@@ -14,6 +14,7 @@ from astropy.table import Table
 import sncosmo
 from .aliases import alias_dict as aliasDictionary
 from tdam import CompositeModel
+from . import ResChar
 
 
 
@@ -178,7 +179,6 @@ class LightCurve(BaseLightCurve):
         which 
         """
 
-        #print(fname)
         with open(fname, 'r') as f:
             meta, lc = sncosmo.read_snana_ascii(f, 
                     default_tablename='OBS')
@@ -202,39 +202,29 @@ class LightCurve(BaseLightCurve):
 
 
     @classmethod
-    def fromSNANA_ascii_files(cls, fnames, banddict, tdmodel, rescale=0.86):
+    def fromSNANA_ascii_files(cls, fnames, banddict, tdmodel, modelcov=True,
+                              rescale=0.86,
+                              row_starter='OBS'):
         """
         """
-        def extract_fit_params(fr):
-
-            if fr['success']:
-                a = fr['parameters']
-            else:
-                a = np.ones_like(fr['parameters']) * np.nan
-    
-            names = list(p + '_fit' for p in fr['param_names'])
-            mydict = dict(zip(names, a))
-            mydict.update({'Usable_fit_params':fr['success']})
-            return mydict
-
         metas = []
         phots = []
-        results = []
         for i, fname in enumerate(fnames):
             snlc = cls.fromSNANA_ascii_file(fname, banddict)
             meta = snlc.props
             phot = snlc.lightCurve
             if tdmodel is not None:
                 tdmodel.set(**dict(z=snlc.props['z'], mwebv=snlc.props['MWEBV']*rescale))
-                res = sncosmo.fit_lc(snlc.get_sncosmo_lc(),
-                                 model=snmodel,
-                                 vparam_names=['t0', 'x0','x1', 'c'])
-        
-                sncosmo_fr = res[0]
-                #print(type(meta))
-                meta.update(extract_fit_params(sncosmo_fr))
-                print(type(meta))
-                results.append((phot.iloc[0]['tid'], res))
+                res = sncosmo.fit_lc(snlc.snCosmoLC(),
+                                     model=tdmodel,
+                                     modelcov=modelcov,
+                                     vparam_names=['t0', 'x0','x1', 'c'])
+
+                reschar = ResChar.fromSNCosmoRes(res)
+                fit_summary = reschar.pack_sncosmo_fit_summaries()
+                meta.update(fit_summary)
+                # print(type(meta))
+                # results.append((phot.iloc[0]['tid'], res))
             metas.append(meta)
             phots.append(phot)
     
@@ -246,7 +236,7 @@ class LightCurve(BaseLightCurve):
         metadata = metadata.rename(columns=dict(RA="ra", DECL="dec"))
         del metadata['tid']
     
-        return metadata, photometry, results
+        return cls(lcdf=photometry, bandNameDict=banddict, propDict=metadata)
 
     def missingColumns(self, lcdf):
         """

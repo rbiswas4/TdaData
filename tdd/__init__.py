@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 import os
 from .version import __VERSION__ as __version__
+from .utils import *
+from .sncosmo_utils import *
 from .io import *
 from .io_simsurvey import *
 from .aliases import *
