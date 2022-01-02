@@ -223,6 +223,7 @@ class LightCurve(BaseLightCurve):
                 reschar = ResChar.fromSNCosmoRes(res)
                 fit_summary = reschar.pack_sncosmo_fit_summaries()
                 meta.update(fit_summary)
+                meta.update(dict(usable_fit_params=res[0]['success']))
                 # print(type(meta))
                 # results.append((phot.iloc[0]['tid'], res))
             metas.append(meta)
