@@ -5,6 +5,7 @@ from __future__ import absolute_import, print_function, division
 from future.utils import with_metaclass
 __all__ = ['BaseLightCurve', 'LightCurve']
 
+from copy import deepcopy as copy
 from future.moves.itertools import zip_longest
 import abc
 from collections import Sequence
@@ -152,6 +153,9 @@ class LightCurve(BaseLightCurve):
 
     @property
     def props(self):
+
+        if 'tid' in self._propDict.columns.values:
+            self._propDict.set_index('tid', inplace=True)
         return self._propDict
 
     @classmethod
@@ -198,6 +202,50 @@ class LightCurve(BaseLightCurve):
         meta['tid'] = tid
         return cls(phot, bandNameDict=banddict, 
                    propDict=meta)
+    
+
+
+    @staticmethod
+    def get_fit_result(lc, meta, tdmodel, banddict, vparam_names=['t0', 'x0', 'x1', 'c'], modelcov=True):
+
+        print(banddict, meta, tdmodel)
+        sn = LightCurve(lcdf=lc, propDict=meta, bandNameDict=banddict)
+        tdmodel.set(**dict(z=meta['z'], mwebv=meta['mwebv']))
+        res = sncosmo.fit_lc(sn.snCosmoLC(),
+                             model=tdmodel,
+                             modelcov=modelcov,
+                             vparam_names=vparam_names)
+        reschar = ResChar.fromSNCosmoRes(res)
+        fit_summary = reschar.pack_sncosmo_fit_summaries()
+
+        return fit_summary, res[0]['success']
+
+
+
+    def update_fit_summaries(self, tdmodel):
+
+
+        raise NotImplementedError('Does not work yet')
+       
+        meta = copy(self.props)
+        meta = meta.reset_index()
+        tids = meta.tid.unique()
+
+        metas=[]
+        for tid in tids:
+            meta = self.props.loc[tid]
+            lc = self.lightCurve.query('tid == @tid')
+            fit_summary, sucess = LightCurve.get_fit_result(lc, meta, tdmodel, banddict=self.bandNameDict) 
+            meta.update(fit_summary)
+            meta.update(dict(usable_fit_params=sucess))
+            metas.append(meta)
+ 
+ 
+        return metas
+
+
+
+
 
 
 
@@ -290,9 +338,12 @@ class LightCurve(BaseLightCurve):
                                                     self.ignore_case))
         return _lc
 
-    def snCosmoLC(self, coaddTimes=None, mjdBefore=0., minmjd=None):
+    def snCosmoLC(self, tid=None, coaddTimes=None, mjdBefore=0., minmjd=None):
+
         lc = self.coaddedLC(coaddTimes=coaddTimes, mjdBefore=mjdBefore,
                             minmjd=minmjd).rename(columns=dict(mjd='time'))
+        if tid is not None:
+            lc = lc.query('tid == @tid') 
         if self.cleanNans:
             lc.dropna(inplace=True)
         return Table.from_pandas(lc)
